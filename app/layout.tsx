@@ -1,11 +1,24 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
+const title = "Contribution Cards";
+const description =
+  "Turn a GitHub contribution graph into a clean, croppable image for social media.";
+
 export const metadata: Metadata = {
-  title: "Contribution Cards",
-  description:
-    "Turn a GitHub contribution graph into a clean, croppable image for social media.",
-  robots: { index: false, follow: false },
+  metadataBase: new URL("https://contribution-cards.vercel.app"),
+  title,
+  description,
+  applicationName: title,
+  authors: [{ name: "James Frewin", url: "https://github.com/heyimjames" }],
+  openGraph: {
+    type: "website",
+    siteName: title,
+    title,
+    description,
+    locale: "en_GB",
+  },
+  twitter: { card: "summary_large_image", title, description },
 };
 
 export const viewport: Viewport = {
