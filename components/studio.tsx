@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Preview } from "./preview";
-import { copyPng, downloadPng } from "@/lib/export";
+import { canDownload, copyPng, encodePng, saveUrl } from "@/lib/export";
+import { useCardImage } from "@/lib/use-card-image";
 import { DEFAULT_OPTIONS, measure, type CardOptions, type RenderInput } from "@/lib/render";
 import { zoneById, zonesFor } from "@/lib/safe-zones";
 import { FORMATS, THEMES, formatById, themeById } from "@/lib/themes";
@@ -201,7 +202,28 @@ export function Studio() {
    * shape on the first frame instead of flashing the previous format's. */
   const aspect = input ? `${input.width} / ${measure(input).height}` : undefined;
 
+  /* The same PNG the download writes, so a press and hold saves the real file. */
+  const imageUrl = useCardImage(input, scale);
+
   const filename = `${login ?? "github"}-${selected}-${themeId}.png`;
+
+  async function onDownload() {
+    if (!input) return;
+    try {
+      /* Reuse the encoded card when it is ready; only encode again if it is not. */
+      if (imageUrl) {
+        saveUrl(imageUrl, filename);
+        return;
+      }
+      const blob = await encodePng(input, scale);
+      const url = URL.createObjectURL(blob);
+      saveUrl(url, filename);
+      /* Long enough for the transfer to start; revoking at once aborts it. */
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch {
+      setError("Could not build the image. Press and hold the preview to save it.");
+    }
+  }
 
   async function onCopy() {
     if (!input) return;
@@ -259,7 +281,7 @@ export function Studio() {
         >
           {input ? (
             <div className="enter" style={{ ["--i" as string]: TIMING.card }}>
-              <Preview input={input} onSize={handleSize} />
+              <Preview input={input} imageUrl={imageUrl} onSize={handleSize} />
             </div>
           ) : (
             <div className="empty">
@@ -426,7 +448,8 @@ export function Studio() {
                 <button
                   className="btn btn-primary"
                   type="button"
-                  onClick={() => downloadPng(input, scale, filename)}
+                  onClick={onDownload}
+                  disabled={!canDownload()}
                 >
                   <DownloadIcon />
                   Download PNG
@@ -442,6 +465,9 @@ export function Studio() {
                       size.p3 ? " · Display P3" : ""
                     }`
                   : " "}
+              </p>
+              <p className="note hold-hint">
+                Or press and hold the preview to save it.
               </p>
             </Group>
           </div>

@@ -22,9 +22,12 @@ type Size = { w: number; h: number };
 
 export function Preview({
   input,
+  imageUrl,
   onSize,
 }: {
   input: RenderInput;
+  /** The encoded card, once ready. An <img> is what a press and hold can save. */
+  imageUrl: string | null;
   onSize: (size: { width: number; height: number; p3: boolean }) => void;
 }) {
   const boxRef = useRef<HTMLDivElement>(null);
@@ -82,13 +85,12 @@ export function Preview({
       <div
         className="frame"
         data-flat={input.options.transparent}
+        role="img"
+        aria-label={`Contribution card for ${input.login}`}
         style={fit > 0 ? { width: displayW, height: displayH } : undefined}
       >
-        <canvas
-          ref={cardRef}
-          role="img"
-          aria-label={`Contribution card for ${input.login}`}
-        />
+        <canvas ref={cardRef} aria-hidden="true" />
+        {imageUrl ? <img className="saveable" src={imageUrl} alt="" /> : null}
         <canvas ref={guideRef} className="guide" aria-hidden="true" />
       </div>
     </div>
