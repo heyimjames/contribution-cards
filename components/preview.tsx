@@ -1,32 +1,96 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { paint, type RenderInput } from "@/lib/render";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { drawGuides, measure, paint, type RenderInput } from "@/lib/render";
 
-/** Preview and export share one renderer, so this canvas is the artwork itself. */
+/* ─────────────────────────────────────────────────────────
+ * PREVIEW SIZING
+ *
+ * The stage is a fixed box, so the preview never jumps when
+ * the format changes. The card is fitted inside it the way
+ * `object-fit: contain` would: scaled down to whichever of
+ * width or height runs out first, and never scaled up past
+ * its true size.
+ *
+ * The backing store is then painted at exactly the pixels the
+ * screen will use, display size times device pixel ratio, so
+ * a 1080 × 1920 story costs the same memory on screen as a
+ * banner instead of thirty megabytes of it.
+ * ───────────────────────────────────────────────────────── */
+
+type Size = { w: number; h: number };
+
 export function Preview({
   input,
   onSize,
 }: {
   input: RenderInput;
-  onSize: (size: { width: number; height: number }) => void;
+  onSize: (size: { width: number; height: number; p3: boolean }) => void;
 }) {
-  const ref = useRef<HTMLCanvasElement>(null);
+  const boxRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLCanvasElement>(null);
+  const guideRef = useRef<HTMLCanvasElement>(null);
+  const [box, setBox] = useState<Size>({ w: 0, h: 0 });
+
+  useLayoutEffect(() => {
+    const el = boxRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect;
+      setBox((prev) =>
+        Math.abs(prev.w - width) < 0.5 && Math.abs(prev.h - height) < 0.5
+          ? prev
+          : { w: width, h: height },
+      );
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  const cardHeight = measure(input).height;
+  const fit =
+    box.w > 0 && box.h > 0
+      ? Math.min(box.w / input.width, box.h / cardHeight, 1)
+      : 0;
+  const displayW = input.width * fit;
+  const displayH = cardHeight * fit;
 
   useEffect(() => {
-    const canvas = ref.current;
-    if (!canvas) return;
-    const size = paint(canvas, input, 2);
-    canvas.style.width = `${size.width}px`;
-    onSize(size);
-  }, [input, onSize]);
+    const canvas = cardRef.current;
+    if (!canvas || fit <= 0) return;
+    const dpr = window.devicePixelRatio || 1;
+    const result = paint(canvas, input, fit * dpr);
+    canvas.style.width = `${displayW}px`;
+    canvas.style.height = `${displayH}px`;
+    onSize({ width: result.width, height: result.height, p3: result.p3 });
+
+    const guide = guideRef.current;
+    if (!guide) return;
+    guide.width = Math.max(1, Math.round(displayW * dpr));
+    guide.height = Math.max(1, Math.round(displayH * dpr));
+    guide.style.width = `${displayW}px`;
+    guide.style.height = `${displayH}px`;
+    const ctx = guide.getContext("2d");
+    if (!ctx) return;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (input.safe) drawGuides(ctx, input.safe, displayW, displayH, dpr, input.theme.dark);
+    else ctx.clearRect(0, 0, displayW, displayH);
+  }, [input, fit, displayW, displayH, onSize]);
 
   return (
-    <canvas
-      ref={ref}
-      role="img"
-      aria-label={`Contribution card for ${input.login}`}
-      style={{ maxWidth: "100%", height: "auto" }}
-    />
+    <div className="fitter" ref={boxRef}>
+      <div
+        className="frame"
+        data-flat={input.options.transparent}
+        style={fit > 0 ? { width: displayW, height: displayH } : undefined}
+      >
+        <canvas
+          ref={cardRef}
+          role="img"
+          aria-label={`Contribution card for ${input.login}`}
+        />
+        <canvas ref={guideRef} className="guide" aria-hidden="true" />
+      </div>
+    </div>
   );
 }

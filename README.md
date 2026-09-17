@@ -17,7 +17,12 @@ no tracking, no cookies. Nothing is stored.
 - **Eight themes**, from GitHub's own palettes to gradients that look nothing like
   GitHub.
 - **Six crops**: tight banner, wide, 16:9, square, portrait and 9:16 story, plus a
-  transparent background option.
+  transparent background option that bleeds edge to edge on the tight crop.
+- **Platform safe areas.** Pick Instagram, Reels, TikTok, Shorts, Snapchat, Meta,
+  LinkedIn, X or Reddit and the card is held inside that platform's reserved
+  margins, with the reserve dimmed in the preview and left out of the export.
+- **Display P3 colour.** Every palette is authored in OKLCH, and the themes we
+  designed carry a wider second palette used when the canvas supports it.
 - **Download or copy** at 1×, 2× or 3×. The pixel size is shown before you export.
 
 ## Run it locally
@@ -37,6 +42,13 @@ library, no API token.
 `data-level` and a tooltip count for every day. Avatars are proxied through
 `app/api/avatar` so the canvas stays same-origin and can still be exported: a
 cross-origin image taints the canvas and silently breaks `toBlob`.
+
+Safe-area figures come from the AdKit set dated 10 September 2026 and are stored
+as fractions of the card, so a guide published at 1080 × 1920 still holds on a
+1600-wide card. Where a platform publishes the reserve it is marked as official;
+the rest are estimates. The action column TikTok and Reels place over the lower
+right is drawn on the guide but not subtracted from the layout, because the card
+is one centred block and cannot flow around a gap.
 
 `lib/render.ts` paints the card. The preview on screen and the exported file come
 from that one function, so the preview is the artwork rather than an approximation

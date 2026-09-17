@@ -1,4 +1,8 @@
-/* ─── tokens ────────────────────────────────────────────── */
+/* ─── tokens ────────────────────────────────────────────────
+ * Every colour is OKLCH. The p3 block below raises chroma
+ * past the sRGB gamut on displays that can show it, so the
+ * accents gain saturation without shifting hue or lightness.
+ * ───────────────────────────────────────────────────────── */
 :root {
   --bg: oklch(0.982 0.002 265);
   --stage: oklch(0.955 0.003 265);
@@ -11,7 +15,7 @@
   --chip: oklch(0.975 0.003 265);
   --chip-on: oklch(0.21 0.012 265);
   --chip-on-text: oklch(0.99 0 0);
-  --danger: oklch(0.55 0.19 25);
+  --danger: oklch(0.52 0.19 25);
   --ring: oklch(0.55 0.15 255);
   --radius: 12px;
   --shadow-card:
@@ -36,7 +40,7 @@
     --chip: oklch(0.245 0.009 265);
     --chip-on: oklch(0.97 0.003 265);
     --chip-on-text: oklch(0.18 0.01 265);
-    --danger: oklch(0.7 0.16 25);
+    --danger: oklch(0.72 0.16 25);
     --ring: oklch(0.72 0.13 255);
     --shadow-card:
       0 1px 1px oklch(0 0 0 / 0.3),
@@ -50,7 +54,14 @@
 
 @media (color-gamut: p3) {
   :root {
-    --ring: oklch(0.55 0.19 255);
+    --ring: oklch(0.55 0.21 255);
+    --danger: oklch(0.52 0.24 25);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ring: oklch(0.72 0.18 255);
+      --danger: oklch(0.72 0.21 25);
+    }
   }
 }
 
@@ -96,19 +107,29 @@ button, input { font: inherit; color: inherit; }
 .wrap {
   max-width: 1240px;
   margin: 0 auto;
-  padding: 28px 20px 72px;
+  padding:
+    calc(20px + env(safe-area-inset-top, 0px))
+    calc(16px + env(safe-area-inset-right, 0px))
+    calc(24px + env(safe-area-inset-bottom, 0px))
+    calc(16px + env(safe-area-inset-left, 0px));
 }
 
 @media (min-width: 720px) {
-  .wrap { padding: 44px 32px 88px; }
+  .wrap {
+    padding:
+      calc(44px + env(safe-area-inset-top, 0px))
+      calc(32px + env(safe-area-inset-right, 0px))
+      88px
+      calc(32px + env(safe-area-inset-left, 0px));
+  }
 }
 
 .masthead {
   display: flex;
   align-items: baseline;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
-  margin-bottom: 22px;
+  margin-bottom: 18px;
 }
 
 .masthead h1 {
@@ -118,18 +139,14 @@ button, input { font: inherit; color: inherit; }
   margin: 0;
 }
 
-.masthead p {
-  margin: 0;
-  color: var(--muted);
-  font-size: 14px;
-}
+.masthead p { margin: 0; color: var(--muted); font-size: 14px; }
 
 /* ─── search ────────────────────────────────────────────── */
 .search {
   display: flex;
   gap: 8px;
   align-items: stretch;
-  margin-bottom: 26px;
+  margin-bottom: 18px;
   max-width: 560px;
 }
 
@@ -146,7 +163,9 @@ button, input { font: inherit; color: inherit; }
   transition-duration: 150ms;
 }
 
-.field:focus-within { box-shadow: var(--shadow-chip), 0 0 0 3px oklch(from var(--ring) l c h / 0.22); }
+.field:focus-within {
+  box-shadow: var(--shadow-chip), 0 0 0 3px oklch(from var(--ring) l c h / 0.22);
+}
 
 .field span {
   padding-left: 13px;
@@ -155,16 +174,10 @@ button, input { font: inherit; color: inherit; }
   white-space: nowrap;
 }
 
-/* The prefix is a nicety, not information: it goes before the input does. */
-@media (max-width: 400px) {
-  .field span { display: none; }
-  .field input { padding-left: 13px; }
-}
-
 .field input {
   flex: 1;
   min-width: 0;
-  padding: 11px 13px 11px 1px;
+  padding: 12px 13px 12px 1px;
   border: 0;
   background: none;
   font-size: 16px;
@@ -173,12 +186,19 @@ button, input { font: inherit; color: inherit; }
 
 .field input::placeholder { color: var(--faint); }
 
+/* The prefix is a nicety, not information: it goes before the input does. */
+@media (max-width: 400px) {
+  .field span { display: none; }
+  .field input { padding-left: 13px; }
+}
+
 /* ─── buttons ───────────────────────────────────────────── */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 7px;
+  min-height: 44px;
   padding: 11px 17px;
   border: 0;
   border-radius: var(--radius);
@@ -206,31 +226,36 @@ button, input { font: inherit; color: inherit; }
 .btn svg { width: 16px; height: 16px; stroke-width: 1.75; }
 
 /* ─── layout ────────────────────────────────────────────── */
-.grid { display: grid; gap: 24px; align-items: start; }
+.grid { display: grid; gap: 20px; align-items: start; }
 
 @media (min-width: 900px) {
   .grid { grid-template-columns: minmax(0, 1fr) 306px; gap: 30px; }
 }
 
-/* ─── preview ───────────────────────────────────────────── */
+/* ─── preview stage ─────────────────────────────────────────
+ * A fixed box, so the preview does not jump when the format
+ * changes. The card is fitted inside it by Preview.
+ * ───────────────────────────────────────────────────────── */
+/* The stage takes the card's own proportions, so a wide banner does not sit
+ * marooned in a tall box. A max height keeps a 9:16 story from filling the
+ * screen, and the fit logic handles the rest. */
 .stage {
   position: relative;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  justify-items: center;
-  align-items: center;
-  padding: 14px;
-  border-radius: 20px;
+  padding: 12px;
+  border-radius: 18px;
   background: var(--stage);
   box-shadow: var(--shadow-chip);
   overflow: hidden;
 }
 
-/* Height comes from the card; only the empty state needs a floor. */
-.stage:has(.empty) { min-height: 260px; }
+@media (min-width: 900px) {
+  .stage { padding: 22px; border-radius: 20px; }
+}
 
-@media (min-width: 720px) {
-  .stage { padding: 22px; }
+.stage[data-empty="true"] {
+  min-height: 220px;
+  display: grid;
+  place-items: center;
 }
 
 .stage[data-checker="true"]::before {
@@ -246,15 +271,46 @@ button, input { font: inherit; color: inherit; }
   background-position: 0 0, 0 9px, 9px -9px, -9px 0;
 }
 
-.stage > * { min-width: 0; max-width: 100%; }
+.stage > .enter { position: relative; width: 100%; }
 
-.stage canvas {
+/* The fitter carries the card's own proportions, so a wide banner does not sit
+ * marooned in a tall box and a tall story does not fill the screen. Putting the
+ * ratio here rather than on the stage keeps the stage's padding out of it. */
+.fitter {
+  width: 100%;
+  aspect-ratio: var(--card-aspect, 16 / 9);
+  max-height: clamp(220px, 46vh, 380px);
+  display: grid;
+  place-items: center;
+}
+
+@media (min-width: 900px) {
+  .fitter { max-height: clamp(320px, 64vh, 700px); }
+}
+
+.frame {
   position: relative;
-  display: block;
-  max-width: 100%;
-  height: auto;
   border-radius: 10px;
   box-shadow: var(--shadow-card);
+  overflow: hidden;
+  transition-property: box-shadow, border-radius;
+  transition-duration: 180ms;
+  transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* A transparent export has no card surface, so the preview stops pretending
+ * it has one: no elevation, no corner radius it will not actually have. */
+.frame[data-flat="true"] {
+  box-shadow: none;
+  border-radius: 0;
+}
+
+.frame canvas { display: block; max-width: 100%; }
+
+.frame .guide {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
 }
 
 .empty {
@@ -263,20 +319,16 @@ button, input { font: inherit; color: inherit; }
   place-items: center;
   text-align: center;
   color: var(--muted);
-  padding: 44px 16px;
+  padding: 40px 16px;
   max-width: 34ch;
 }
 
 .empty strong { color: var(--text); font-weight: 600; }
 
-.error {
-  color: var(--danger);
-  font-size: 14px;
-  margin: 10px 2px 0;
-}
+.error { color: var(--danger); font-size: 14px; margin: 0 2px 14px; }
 
 /* ─── panel ─────────────────────────────────────────────── */
-.panel { display: grid; gap: 20px; }
+.panel { display: grid; gap: 18px; }
 
 .group { display: grid; gap: 9px; }
 
@@ -292,12 +344,13 @@ button, input { font: inherit; color: inherit; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 
 .chip {
-  padding: 6px 11px;
+  min-height: 40px;
+  padding: 8px 14px;
   border: 0;
-  border-radius: 9px;
+  border-radius: 10px;
   background: var(--chip);
   box-shadow: var(--shadow-chip);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 450;
   cursor: pointer;
   transition-property: scale, background-color, color;
@@ -307,26 +360,21 @@ button, input { font: inherit; color: inherit; }
 
 .chip:active { scale: 0.96; }
 
-.chip[aria-pressed="true"] {
-  background: var(--chip-on);
-  color: var(--chip-on-text);
+.chip[aria-pressed="true"] { background: var(--chip-on); color: var(--chip-on-text); }
+
+@media (min-width: 900px) {
+  .chip { min-height: 0; padding: 6px 11px; font-size: 13px; border-radius: 9px; }
 }
 
-.chip small { display: block; font-size: 11px; opacity: 0.6; }
-
-.swatches {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
-}
+.swatches { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
 
 .swatch {
   position: relative;
   display: grid;
   gap: 4px;
-  padding: 7px 7px 6px;
+  padding: 8px 8px 7px;
   border: 0;
-  border-radius: 10px;
+  border-radius: 11px;
   background: var(--chip);
   box-shadow: var(--shadow-chip);
   cursor: pointer;
@@ -338,51 +386,43 @@ button, input { font: inherit; color: inherit; }
 
 .swatch:active { scale: 0.96; }
 
-.swatch[aria-pressed="true"] {
-  box-shadow: var(--shadow-chip), 0 0 0 2px var(--chip-on);
-}
+.swatch[aria-pressed="true"] { box-shadow: var(--shadow-chip), 0 0 0 2px var(--chip-on); }
 
-.swatch-bar {
-  display: flex;
-  gap: 2px;
-  padding: 4px;
-  border-radius: 6px;
-}
+/* Concentric: outer 11px = inner 7px + 4px padding. */
+.swatch-bar { display: flex; gap: 2px; padding: 4px; border-radius: 7px; }
 
-.swatch-bar i {
-  flex: 1;
-  height: 12px;
-  border-radius: 3px;
-}
+.swatch-bar i { flex: 1; height: 12px; border-radius: 3px; }
 
-.swatch span {
-  font-size: 11px;
-  color: var(--muted);
-  padding-left: 2px;
-}
+.swatch span { font-size: 11px; color: var(--muted); padding-left: 2px; }
 
 .swatch[aria-pressed="true"] span { color: var(--text); }
 
 .actions { display: grid; gap: 8px; grid-template-columns: 1fr auto; }
 
-.note {
-  font-size: 12px;
-  color: var(--faint);
-  margin: 0;
+.note { font-size: 12px; color: var(--faint); margin: 0; line-height: 1.45; }
+
+/* The export controls stay reachable on a phone without leaving the panel. */
+@media (max-width: 899px) {
+  .export {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    margin: 0 -16px;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+    background: oklch(from var(--bg) l c h / 0.88);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 -1px 0 var(--line);
+  }
 }
 
 /* ─────────────────────────────────────────────────────────
  * ENTRANCE STORYBOARD
  *
  *    0ms   card lifts in: opacity 0 → 1, scale 0.985 → 1, y +8 → 0
- *   80ms   panel group 1 (year)
- *  160ms   panel group 2 (theme)
- *  240ms   panel group 3 (format)
- *  320ms   panel group 4 (include)
- *  400ms   panel group 5 (actions)
+ *   80ms   panel groups follow, one every 80ms, in reading order
  *
- * Runs once, when a card first arrives. Staggering the panel
- * after the card reads as the controls belonging to it.
+ * `--i` is the group's index; the delay is derived from it, so
+ * adding a group needs no new CSS. Skipped under reduced motion.
  * ───────────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: no-preference) {
   .enter {

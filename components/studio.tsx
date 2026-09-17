@@ -3,9 +3,34 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Preview } from "./preview";
 import { copyPng, downloadPng } from "@/lib/export";
-import { DEFAULT_OPTIONS, type CardOptions, type RenderInput } from "@/lib/render";
+import { DEFAULT_OPTIONS, measure, type CardOptions, type RenderInput } from "@/lib/render";
+import { zoneById, zonesFor } from "@/lib/safe-zones";
 import { FORMATS, THEMES, formatById, themeById } from "@/lib/themes";
 import type { Profile, YearData } from "@/lib/types";
+
+/* ─────────────────────────────────────────────────────────
+ * ENTRANCE STORYBOARD
+ *
+ *    0ms   card lifts in: opacity 0 → 1, scale 0.985 → 1, y +8 → 0
+ *   80ms   panel: year
+ *  160ms   panel: theme
+ *  240ms   panel: format
+ *  320ms   panel: safe area
+ *  400ms   panel: include
+ *  480ms   panel: cells
+ *  560ms   panel: export
+ *
+ * One integer per group drives the whole sequence through the
+ * `--i` custom property; the keyframes live in globals.css.
+ * Staggering the panel after the card reads as the controls
+ * belonging to it. It runs once, on the first card, and is
+ * skipped entirely under prefers-reduced-motion.
+ * ───────────────────────────────────────────────────────── */
+const TIMING = {
+  card: 0,
+  groupStep: 80,
+  lift: 420,
+};
 
 /** Stacking every year of a long-lived account would mean dozens of requests. */
 const MAX_STACKED_YEARS = 10;
@@ -18,6 +43,7 @@ const TOGGLES: { key: keyof CardOptions; label: string }[] = [
   { key: "showMonths", label: "Months" },
   { key: "showDays", label: "Days" },
   { key: "showLegend", label: "Legend" },
+  { key: "showUrl", label: "URL" },
   { key: "transparent", label: "Transparent" },
 ];
 
@@ -42,26 +68,22 @@ export function Studio() {
 
   const [themeId, setThemeId] = useState("snow");
   const [formatId, setFormatId] = useState("tight");
+  const [safeId, setSafeId] = useState<string | null>(null);
   const [scale, setScale] = useState(2);
   const [options, setOptions] = useState<CardOptions>(DEFAULT_OPTIONS);
-  const [size, setSize] = useState({ width: 0, height: 0 });
+  const [size, setSize] = useState({ width: 0, height: 0, p3: false });
 
   const request = useRef(0);
 
-  const fetchYear = useCallback(
-    async (user: string, year: string): Promise<YearData> => {
-      const res = await fetch(
-        `/api/contributions?user=${encodeURIComponent(user)}&year=${year}`,
-      );
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? "Could not reach GitHub.");
-      setProfile(json.profile as Profile);
-      const data = json.year as YearData;
-      setCache((prev) => ({ ...prev, [`${json.profile.login}:${year}`]: data }));
-      return data;
-    },
-    [],
-  );
+  const fetchYear = useCallback(async (user: string, year: string): Promise<YearData> => {
+    const res = await fetch(`/api/contributions?user=${encodeURIComponent(user)}&year=${year}`);
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error ?? "Could not reach GitHub.");
+    setProfile(json.profile as Profile);
+    const data = json.year as YearData;
+    setCache((prev) => ({ ...prev, [`${json.profile.login}:${year}`]: data }));
+    return data;
+  }, []);
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -92,10 +114,7 @@ export function Studio() {
     setAvatar(null);
     const img = new Image();
     img.src = `/api/avatar?user=${encodeURIComponent(user)}`;
-    img
-      .decode()
-      .then(() => setAvatar(img))
-      .catch(() => setAvatar(null));
+    img.decode().then(() => setAvatar(img)).catch(() => setAvatar(null));
   }
 
   const stackedKeys = useMemo(
@@ -126,13 +145,22 @@ export function Studio() {
     const loaded = keys.map((k) => cache[`${login}:${k}`]).filter(Boolean) as YearData[];
     /* A stack of empty grids from dormant early years shrinks every other year
      * to nothing, so silent years are dropped once past the recent three. */
-    return selected === "all"
-      ? loaded.filter((year, i) => i < 3 || year.total > 0)
-      : loaded;
+    return selected === "all" ? loaded.filter((year, i) => i < 3 || year.total > 0) : loaded;
   }, [login, selected, stackedKeys, cache]);
 
   const format = formatById(formatId);
+  const zones = useMemo(() => zonesFor(format.aspect), [format.aspect]);
   const name = profile?.name ?? null;
+
+  /* A zone belongs to one aspect ratio, so changing format drops a stale one. */
+  useEffect(() => {
+    if (safeId && !zones.some((z) => z.id === safeId)) setSafeId(null);
+  }, [safeId, zones]);
+
+  const safe = useMemo(
+    () => (safeId && zones.some((z) => z.id === safeId) ? zoneById(safeId) : null),
+    [safeId, zones],
+  );
 
   /* Memoised: Preview repaints on identity change, so a fresh object every
    * render would repaint (and re-measure) in a loop. */
@@ -148,15 +176,18 @@ export function Studio() {
             options,
             width: format.width,
             height: format.height,
+            safe,
           }
         : null,
-    [login, years, name, avatar, themeId, options, format.width, format.height],
+    [login, years, name, avatar, themeId, options, format.width, format.height, safe],
   );
 
   /* Bail out when the measurement is unchanged, so the repaint cycle ends. */
-  const handleSize = useCallback((next: { width: number; height: number }) => {
+  const handleSize = useCallback((next: { width: number; height: number; p3: boolean }) => {
     setSize((prev) =>
-      prev.width === next.width && prev.height === next.height ? prev : next,
+      prev.width === next.width && prev.height === next.height && prev.p3 === next.p3
+        ? prev
+        : next,
     );
   }, []);
 
@@ -165,6 +196,10 @@ export function Studio() {
     const id = setTimeout(() => setCopied(false), 1800);
     return () => clearTimeout(id);
   }, [copied]);
+
+  /* Measured, not reported back from the canvas, so the stage takes the right
+   * shape on the first frame instead of flashing the previous format's. */
+  const aspect = input ? `${input.width} / ${measure(input).height}` : undefined;
 
   const filename = `${login ?? "github"}-${selected}-${themeId}.png`;
 
@@ -215,9 +250,15 @@ export function Studio() {
       ) : null}
 
       <div className="grid">
-        <section className="stage" data-checker={options.transparent} key={login ?? "empty"}>
+        <section
+          className="stage"
+          data-checker={options.transparent}
+          data-empty={!input}
+          key={login ?? "empty"}
+          style={aspect ? { ["--card-aspect" as string]: aspect } : undefined}
+        >
           {input ? (
-            <div className="enter" style={{ maxWidth: "100%" }}>
+            <div className="enter" style={{ ["--i" as string]: TIMING.card }}>
               <Preview input={input} onSize={handleSize} />
             </div>
           ) : (
@@ -270,10 +311,7 @@ export function Studio() {
                     onClick={() => setThemeId(theme.id)}
                     title={theme.name}
                   >
-                    <div
-                      className="swatch-bar"
-                      style={{ background: theme.bg[theme.bg.length - 1] }}
-                    >
+                    <div className="swatch-bar" style={{ background: theme.bg[theme.bg.length - 1] }}>
                       {theme.levels.slice(1).map((level) => (
                         <i key={level} style={{ background: level }} />
                       ))}
@@ -301,7 +339,44 @@ export function Studio() {
               </div>
             </Group>
 
-            <Group title="Include" index={4}>
+            <Group title="Safe area" index={4}>
+              {zones.length ? (
+                <>
+                  <div className="chips">
+                    <button
+                      className="chip"
+                      type="button"
+                      aria-pressed={safeId === null}
+                      onClick={() => setSafeId(null)}
+                    >
+                      Off
+                    </button>
+                    {zones.map((zone) => (
+                      <button
+                        key={zone.id}
+                        className="chip"
+                        type="button"
+                        aria-pressed={safeId === zone.id}
+                        onClick={() => setSafeId(zone.id)}
+                      >
+                        {zone.name}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="note">
+                    {safe
+                      ? `${safe.note ?? "Content is held inside the guide."} ${
+                          safe.official ? "Published by the platform." : "An estimated buffer."
+                        }${safe.notch ? " The hatched column is drawn, not avoided." : ""}`
+                      : "Keeps captions and buttons from covering the card."}
+                  </p>
+                </>
+              ) : (
+                <p className="note">Pick a fixed format to use a platform safe area.</p>
+              )}
+            </Group>
+
+            <Group title="Include" index={5}>
               <div className="chips">
                 {TOGGLES.map((t) => (
                   <button
@@ -317,7 +392,7 @@ export function Studio() {
               </div>
             </Group>
 
-            <Group title="Cells" index={5}>
+            <Group title="Cells" index={6}>
               <div className="chips">
                 {SHAPES.map((s) => (
                   <button
@@ -333,7 +408,7 @@ export function Studio() {
               </div>
             </Group>
 
-            <Group title="Export" index={6}>
+            <Group title="Export" index={7} className="export">
               <div className="chips">
                 {SCALES.map((s) => (
                   <button
@@ -363,7 +438,9 @@ export function Studio() {
               </div>
               <p className="note">
                 {size.width
-                  ? `${Math.round(size.width * scale)} × ${Math.round(size.height * scale)} px`
+                  ? `${Math.round(size.width * scale)} × ${Math.round(size.height * scale)} px${
+                      size.p3 ? " · Display P3" : ""
+                    }`
                   : " "}
               </p>
             </Group>
@@ -377,14 +454,19 @@ export function Studio() {
 function Group({
   title,
   index,
+  className,
   children,
 }: {
   title: string;
   index: number;
+  className?: string;
   children: React.ReactNode;
 }) {
   return (
-    <section className="group enter" style={{ ["--i" as string]: index }}>
+    <section
+      className={`group enter${className ? ` ${className}` : ""}`}
+      style={{ ["--i" as string]: index }}
+    >
       <h2>{title}</h2>
       {children}
     </section>

@@ -35,7 +35,13 @@ one client component.
   decided. Carries a layout storyboard comment at the top. Every size derives
   from the card width; a single uniform scale factor handles fixed-height
   formats, so proportions hold from a tight banner to a 9:16 story.
-- `lib/themes.ts` — themes and crop presets, as data. Add to the arrays.
+- `lib/themes.ts` — themes and crop presets, as data. Add to the arrays. Colour is
+  OKLCH; a theme may carry `levelsP3` and `bgP3` used only when the canvas context
+  really is display-p3. The two GitHub palettes deliberately have no P3 variant,
+  because matching GitHub exactly is the point of them.
+- `lib/safe-zones.ts` — platform safe areas from the AdKit set dated 10 September
+  2026, stored as fractions of the card so they hold at any size. Each is tagged
+  with the aspect ratio it belongs to; changing format drops a zone from another.
 - `lib/export.ts` — offscreen render, `toBlob`, download or clipboard.
 - `components/studio.tsx` — all state. `components/preview.tsx` — the canvas.
 
@@ -47,6 +53,10 @@ one client component.
 - **The avatar must stay same-origin.** It is proxied through `/api/avatar`
   because a cross-origin image taints the canvas and silently breaks `toBlob`.
   Never draw an image straight from `avatars.githubusercontent.com`.
+- **Guides are never exported.** The safe-area overlay is painted on a second
+  canvas above the card in the preview. It must not enter `draw()`.
+- **Safe-area insets are rectangular.** A notch is drawn, not subtracted. Do not
+  try to flow the card around one; it is a single centred block.
 - **Memoise the render input.** `Preview` repaints on identity change, so a
   fresh input object every render loops forever. The size callback bails out on
   unchanged values for the same reason.
