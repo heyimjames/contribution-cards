@@ -1,0 +1,62 @@
+# CLAUDE.md
+
+Guidance for Claude Code working in this repository.
+
+## What this is
+
+Contribution Cards: a small single-page tool that turns a GitHub contribution
+graph into an exportable image. No database, no auth, no analytics, no cookies,
+no third-party scripts. Two route handlers and a canvas renderer.
+
+## Commands
+
+```sh
+pnpm install
+pnpm dev            # http://localhost:3000
+pnpm build          # production build; also runs the TypeScript check
+pnpm typecheck      # tsc --noEmit
+```
+
+There is no test suite and no linter. Rely on `typecheck`, `build`, and visual
+verification with the `agent-browser` CLI against a running dev server.
+
+## Architecture
+
+**Next.js 16 App Router, React 19, TypeScript. No UI library, no CSS framework,
+no motion library.** The whole interface is one stylesheet of OKLCH tokens and
+one client component.
+
+- `lib/github.ts` — scrapes the public contributions fragment. Each day is a
+  `<td data-date data-level id="contribution-day-component-{row}-{col}">`, where
+  row is the weekday (0 = Sunday) and col is the week. Counts come from the
+  sibling `<tool-tip>` prose, so totals are summed rather than read from a header.
+  If GitHub changes this markup, that is the one file to fix.
+- `lib/render.ts` — the canvas renderer, and the only place card pixels are
+  decided. Carries a layout storyboard comment at the top. Every size derives
+  from the card width; a single uniform scale factor handles fixed-height
+  formats, so proportions hold from a tight banner to a 9:16 story.
+- `lib/themes.ts` — themes and crop presets, as data. Add to the arrays.
+- `lib/export.ts` — offscreen render, `toBlob`, download or clipboard.
+- `components/studio.tsx` — all state. `components/preview.tsx` — the canvas.
+
+## Constraints that shape every edit
+
+- **One renderer.** The preview and the export must come from `draw()` in
+  `lib/render.ts`. Never add a second drawing path such as DOM-to-image, or the
+  preview stops being the artwork and starts lying about it.
+- **The avatar must stay same-origin.** It is proxied through `/api/avatar`
+  because a cross-origin image taints the canvas and silently breaks `toBlob`.
+  Never draw an image straight from `avatars.githubusercontent.com`.
+- **Memoise the render input.** `Preview` repaints on identity change, so a
+  fresh input object every render loops forever. The size callback bails out on
+  unchanged values for the same reason.
+- **No token, no key, no storage.** Everything needed is public. Keep it that way.
+- **System fonts only.** Canvas text and page text use the same stack, so
+  exports match the preview without loading a font.
+- **British English**, sentence case, no exclamation marks. "1 contribution",
+  not "1 contributions".
+- **Quality bar**: no horizontal overflow at 320px, text contrast at least
+  4.5:1 in both colour schemes, keyboard-complete, motion behind
+  `prefers-reduced-motion`. Measure contrast in the browser rather than judging
+  it by eye; computed colours come back as `oklch()`, so convert through a
+  canvas pixel before calculating a ratio.

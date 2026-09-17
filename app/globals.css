@@ -1,0 +1,405 @@
+/* ─── tokens ────────────────────────────────────────────── */
+:root {
+  --bg: oklch(0.982 0.002 265);
+  --stage: oklch(0.955 0.003 265);
+  --surface: oklch(1 0 0);
+  --text: oklch(0.21 0.012 265);
+  --muted: oklch(0.505 0.014 265);
+  --faint: oklch(0.545 0.014 265);
+  --line: oklch(0.915 0.005 265);
+  --field: oklch(1 0 0);
+  --chip: oklch(0.975 0.003 265);
+  --chip-on: oklch(0.21 0.012 265);
+  --chip-on-text: oklch(0.99 0 0);
+  --danger: oklch(0.55 0.19 25);
+  --ring: oklch(0.55 0.15 255);
+  --radius: 12px;
+  --shadow-card:
+    0 1px 1px oklch(0 0 0 / 0.04),
+    0 4px 12px oklch(0 0 0 / 0.06),
+    0 18px 40px oklch(0 0 0 / 0.07);
+  --shadow-chip: 0 1px 0 oklch(0 0 0 / 0.04), 0 0 0 1px oklch(0 0 0 / 0.06);
+  --shadow-btn: 0 1px 2px oklch(0 0 0 / 0.16), 0 0 0 1px oklch(0 0 0 / 0.9) inset;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: oklch(0.175 0.008 265);
+    --stage: oklch(0.145 0.008 265);
+    --surface: oklch(0.215 0.009 265);
+    --text: oklch(0.97 0.003 265);
+    --muted: oklch(0.755 0.012 265);
+    --faint: oklch(0.645 0.012 265);
+    --line: oklch(0.29 0.009 265);
+    --field: oklch(0.195 0.009 265);
+    --chip: oklch(0.245 0.009 265);
+    --chip-on: oklch(0.97 0.003 265);
+    --chip-on-text: oklch(0.18 0.01 265);
+    --danger: oklch(0.7 0.16 25);
+    --ring: oklch(0.72 0.13 255);
+    --shadow-card:
+      0 1px 1px oklch(0 0 0 / 0.3),
+      0 6px 18px oklch(0 0 0 / 0.35),
+      0 24px 60px oklch(0 0 0 / 0.4);
+    --shadow-chip: 0 0 0 1px oklch(1 0 0 / 0.08);
+    --shadow-btn: 0 1px 2px oklch(0 0 0 / 0.4);
+    color-scheme: dark;
+  }
+}
+
+@media (color-gamut: p3) {
+  :root {
+    --ring: oklch(0.55 0.19 255);
+  }
+}
+
+/* ─── base ──────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+button, input { font: inherit; color: inherit; }
+
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.skip {
+  position: absolute;
+  left: -9999px;
+  top: 8px;
+  padding: 8px 14px;
+  background: var(--surface);
+  border-radius: 8px;
+  box-shadow: var(--shadow-card);
+  z-index: 10;
+}
+.skip:focus { left: 12px; }
+
+/* ─── shell ─────────────────────────────────────────────── */
+.wrap {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 28px 20px 72px;
+}
+
+@media (min-width: 720px) {
+  .wrap { padding: 44px 32px 88px; }
+}
+
+.masthead {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 22px;
+}
+
+.masthead h1 {
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.masthead p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+/* ─── search ────────────────────────────────────────────── */
+.search {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+  margin-bottom: 26px;
+  max-width: 560px;
+}
+
+.field {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  background: var(--field);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-chip);
+  transition-property: box-shadow;
+  transition-duration: 150ms;
+}
+
+.field:focus-within { box-shadow: var(--shadow-chip), 0 0 0 3px oklch(from var(--ring) l c h / 0.22); }
+
+.field span {
+  padding-left: 13px;
+  color: var(--faint);
+  user-select: none;
+  white-space: nowrap;
+}
+
+/* The prefix is a nicety, not information: it goes before the input does. */
+@media (max-width: 400px) {
+  .field span { display: none; }
+  .field input { padding-left: 13px; }
+}
+
+.field input {
+  flex: 1;
+  min-width: 0;
+  padding: 11px 13px 11px 1px;
+  border: 0;
+  background: none;
+  font-size: 16px;
+  outline: none;
+}
+
+.field input::placeholder { color: var(--faint); }
+
+/* ─── buttons ───────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 11px 17px;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--chip);
+  box-shadow: var(--shadow-chip);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition-property: scale, background-color, opacity;
+  transition-duration: 130ms;
+  transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+
+.btn:active { scale: 0.96; }
+.btn[disabled] { opacity: 0.5; cursor: default; }
+.btn[disabled]:active { scale: 1; }
+
+.btn-primary {
+  background: var(--chip-on);
+  color: var(--chip-on-text);
+  box-shadow: var(--shadow-btn);
+}
+
+.btn svg { width: 16px; height: 16px; stroke-width: 1.75; }
+
+/* ─── layout ────────────────────────────────────────────── */
+.grid { display: grid; gap: 24px; align-items: start; }
+
+@media (min-width: 900px) {
+  .grid { grid-template-columns: minmax(0, 1fr) 306px; gap: 30px; }
+}
+
+/* ─── preview ───────────────────────────────────────────── */
+.stage {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  align-items: center;
+  padding: 14px;
+  border-radius: 20px;
+  background: var(--stage);
+  box-shadow: var(--shadow-chip);
+  overflow: hidden;
+}
+
+/* Height comes from the card; only the empty state needs a floor. */
+.stage:has(.empty) { min-height: 260px; }
+
+@media (min-width: 720px) {
+  .stage { padding: 22px; }
+}
+
+.stage[data-checker="true"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(45deg, oklch(0.5 0 0 / 0.07) 25%, transparent 25%),
+    linear-gradient(-45deg, oklch(0.5 0 0 / 0.07) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, oklch(0.5 0 0 / 0.07) 75%),
+    linear-gradient(-45deg, transparent 75%, oklch(0.5 0 0 / 0.07) 75%);
+  background-size: 18px 18px;
+  background-position: 0 0, 0 9px, 9px -9px, -9px 0;
+}
+
+.stage > * { min-width: 0; max-width: 100%; }
+
+.stage canvas {
+  position: relative;
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 10px;
+  box-shadow: var(--shadow-card);
+}
+
+.empty {
+  display: grid;
+  gap: 6px;
+  place-items: center;
+  text-align: center;
+  color: var(--muted);
+  padding: 44px 16px;
+  max-width: 34ch;
+}
+
+.empty strong { color: var(--text); font-weight: 600; }
+
+.error {
+  color: var(--danger);
+  font-size: 14px;
+  margin: 10px 2px 0;
+}
+
+/* ─── panel ─────────────────────────────────────────────── */
+.panel { display: grid; gap: 20px; }
+
+.group { display: grid; gap: 9px; }
+
+.group > h2 {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.chip {
+  padding: 6px 11px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--chip);
+  box-shadow: var(--shadow-chip);
+  font-size: 13px;
+  font-weight: 450;
+  cursor: pointer;
+  transition-property: scale, background-color, color;
+  transition-duration: 130ms;
+  transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+
+.chip:active { scale: 0.96; }
+
+.chip[aria-pressed="true"] {
+  background: var(--chip-on);
+  color: var(--chip-on-text);
+}
+
+.chip small { display: block; font-size: 11px; opacity: 0.6; }
+
+.swatches {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.swatch {
+  position: relative;
+  display: grid;
+  gap: 4px;
+  padding: 7px 7px 6px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--chip);
+  box-shadow: var(--shadow-chip);
+  cursor: pointer;
+  text-align: left;
+  transition-property: scale, box-shadow;
+  transition-duration: 130ms;
+  transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+
+.swatch:active { scale: 0.96; }
+
+.swatch[aria-pressed="true"] {
+  box-shadow: var(--shadow-chip), 0 0 0 2px var(--chip-on);
+}
+
+.swatch-bar {
+  display: flex;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 6px;
+}
+
+.swatch-bar i {
+  flex: 1;
+  height: 12px;
+  border-radius: 3px;
+}
+
+.swatch span {
+  font-size: 11px;
+  color: var(--muted);
+  padding-left: 2px;
+}
+
+.swatch[aria-pressed="true"] span { color: var(--text); }
+
+.actions { display: grid; gap: 8px; grid-template-columns: 1fr auto; }
+
+.note {
+  font-size: 12px;
+  color: var(--faint);
+  margin: 0;
+}
+
+/* ─────────────────────────────────────────────────────────
+ * ENTRANCE STORYBOARD
+ *
+ *    0ms   card lifts in: opacity 0 → 1, scale 0.985 → 1, y +8 → 0
+ *   80ms   panel group 1 (year)
+ *  160ms   panel group 2 (theme)
+ *  240ms   panel group 3 (format)
+ *  320ms   panel group 4 (include)
+ *  400ms   panel group 5 (actions)
+ *
+ * Runs once, when a card first arrives. Staggering the panel
+ * after the card reads as the controls belonging to it.
+ * ───────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: no-preference) {
+  .enter {
+    animation: lift 420ms cubic-bezier(0.2, 0, 0, 1) both;
+    animation-delay: calc(var(--i, 0) * 80ms);
+  }
+}
+
+@keyframes lift {
+  from { opacity: 0; scale: 0.985; translate: 0 8px; }
+  to { opacity: 1; scale: 1; translate: 0 0; }
+}
+
+.spin { animation: spin 900ms linear infinite; }
+
+@keyframes spin { to { rotate: 360deg; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .spin { animation: none; }
+}
