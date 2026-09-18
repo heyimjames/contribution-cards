@@ -55,7 +55,8 @@ const SHAPES: { key: CardOptions["shape"]; label: string }[] = [
   { key: "circle", label: "Dots" },
 ];
 
-const SCALES = [1, 2, 3];
+/** Exports are always 2x the card's own size: sharp everywhere, without asking. */
+const EXPORT_SCALE = 2;
 
 export function Studio() {
   const [query, setQuery] = useState("");
@@ -72,9 +73,8 @@ export function Studio() {
   const [themeId, setThemeId] = useState("snow");
   const [formatId, setFormatId] = useState("tight");
   const [safeId, setSafeId] = useState<string | null>(null);
-  const [scale, setScale] = useState(2);
   const [options, setOptions] = useState<CardOptions>(DEFAULT_OPTIONS);
-  const [size, setSize] = useState({ width: 0, height: 0, p3: false });
+  const scale = EXPORT_SCALE;
 
   const request = useRef(0);
 
@@ -205,15 +205,6 @@ export function Studio() {
     [login, shownYears, name, avatar, themeId, options, format.width, format.height, safe],
   );
 
-  /* Bail out when the measurement is unchanged, so the repaint cycle ends. */
-  const handleSize = useCallback((next: { width: number; height: number; p3: boolean }) => {
-    setSize((prev) =>
-      prev.width === next.width && prev.height === next.height && prev.p3 === next.p3
-        ? prev
-        : next,
-    );
-  }, []);
-
   useEffect(() => {
     if (!copied) return;
     const id = setTimeout(() => setCopied(false), 1800);
@@ -333,11 +324,7 @@ export function Studio() {
           style={{ ["--card-aspect" as string]: aspect }}
         >
           <div className="enter" style={{ ["--i" as string]: TIMING.card }}>
-            <Preview
-              input={shownInput}
-              imageUrl={input ? imageUrl : null}
-              onSize={handleSize}
-            />
+            <Preview input={shownInput} imageUrl={input ? imageUrl : null} />
           </div>
           </section>
 
@@ -509,19 +496,6 @@ export function Studio() {
             </Group>
 
             <Group title="Export" index={8} className="export">
-              <div className="chips">
-                {SCALES.map((s) => (
-                  <button
-                    key={s}
-                    className="chip"
-                    type="button"
-                    aria-pressed={scale === s}
-                    onClick={() => setScale(s)}
-                  >
-                    {s}&times;
-                  </button>
-                ))}
-              </div>
               <div className="actions">
                 <button
                   className="btn btn-primary"
@@ -537,19 +511,6 @@ export function Studio() {
                   {copied ? "Copied" : "Copy image"}
                 </button>
               </div>
-              <p className="note">
-                {size.width
-                  ? `${Math.round(size.width * scale)} × ${Math.round(size.height * scale)} px${
-                      size.p3 ? " · Display P3" : ""
-                    }`
-                  : " "}
-              </p>
-              <p className="note">
-                Copying puts the picture on the clipboard, ready to paste into a post.
-              </p>
-              <p className="note hold-hint">
-                Or press and hold the preview to save it.
-              </p>
             </Group>
           </div>
         ) : null}

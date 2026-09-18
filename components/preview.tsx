@@ -27,12 +27,10 @@ const fitOf = (box: Size, cardW: number, cardH: number) =>
 export function Preview({
   input,
   imageUrl,
-  onSize,
 }: {
   input: RenderInput;
   /** The encoded card, once ready. An <img> is what a press and hold can save. */
   imageUrl: string | null;
-  onSize: (size: { width: number; height: number; p3: boolean }) => void;
 }) {
   const boxRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLCanvasElement>(null);
@@ -65,10 +63,9 @@ export function Preview({
     const canvas = cardRef.current;
     if (!canvas || fit <= 0) return;
     const dpr = window.devicePixelRatio || 1;
-    const result = paint(canvas, input, fit * dpr);
+    paint(canvas, input, fit * dpr);
     canvas.style.width = `${displayW}px`;
     canvas.style.height = `${displayH}px`;
-    onSize({ width: result.width, height: result.height, p3: result.p3 });
 
     const guide = guideRef.current;
     if (!guide) return;
@@ -82,7 +79,7 @@ export function Preview({
     if (input.safe)
       drawGuides(ctx, input.safe, displayW, displayH, dpr, input.theme.dark, radius);
     else ctx.clearRect(0, 0, displayW, displayH);
-  }, [input, fit, displayW, displayH, radius, onSize]);
+  }, [input, fit, displayW, displayH, radius]);
 
   return (
     <div className="fitter" ref={boxRef}>
