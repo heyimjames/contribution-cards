@@ -534,7 +534,7 @@ export function Studio() {
                 </button>
                 <button className="btn" type="button" onClick={onCopy}>
                   <IconSwap on={copied} off={<CopyIcon />} upper={<CheckIcon />} />
-                  {copied ? "Copied" : "Copy"}
+                  {copied ? "Copied" : "Copy image"}
                 </button>
               </div>
               <p className="note">
@@ -543,6 +543,9 @@ export function Studio() {
                       size.p3 ? " · Display P3" : ""
                     }`
                   : " "}
+              </p>
+              <p className="note">
+                Copying puts the picture on the clipboard, ready to paste into a post.
               </p>
               <p className="note hold-hint">
                 Or press and hold the preview to save it.
