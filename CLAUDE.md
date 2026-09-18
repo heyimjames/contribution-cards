@@ -50,6 +50,11 @@ one client component.
 - **One renderer.** The preview and the export must come from `draw()` in
   `lib/render.ts`. Never add a second drawing path such as DOM-to-image, or the
   preview stops being the artwork and starts lying about it.
+- **The preview image is a data URL, the download is a blob URL.** A `blob:`
+  handle means nothing outside the page that made it, so an operating-system
+  copy of the image can put that handle on the clipboard and paste a reference
+  to nothing. The displayed image therefore carries its bytes inline. Do not
+  "optimise" it back to an object URL.
 - **The avatar must stay same-origin.** It is proxied through `/api/avatar`
   because a cross-origin image taints the canvas and silently breaks `toBlob`.
   Never draw an image straight from `avatars.githubusercontent.com`.

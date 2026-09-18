@@ -243,7 +243,7 @@ export function Studio() {
   const aspect = `${shownInput.width} / ${measure(shownInput).height}`;
 
   /* The same PNG the download writes, so a press and hold saves the real file. */
-  const imageUrl = useCardImage(input, scale);
+  const image = useCardImage(input, scale);
 
   const filename = `${login ?? "github"}-${selected}-${themeId}.png`;
 
@@ -251,8 +251,8 @@ export function Studio() {
     if (!input) return;
     try {
       /* Reuse the encoded card when it is ready; only encode again if it is not. */
-      if (imageUrl) {
-        saveUrl(imageUrl, filename);
+      if (image) {
+        saveUrl(image.download, filename);
         setSaved(true);
         return;
       }
@@ -324,7 +324,7 @@ export function Studio() {
           style={{ ["--card-aspect" as string]: aspect }}
         >
           <div className="enter" style={{ ["--i" as string]: TIMING.card }}>
-            <Preview input={shownInput} imageUrl={input ? imageUrl : null} />
+            <Preview input={shownInput} imageUrl={input ? (image?.src ?? null) : null} />
           </div>
           </section>
 
