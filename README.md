@@ -21,6 +21,8 @@ no tracking, no cookies. Nothing is stored.
 - **Platform safe areas.** Pick Instagram, Reels, TikTok, Shorts, Snapchat, Meta,
   LinkedIn, X or Reddit and the card is held inside that platform's reserved
   margins, with the reserve dimmed in the preview and left out of the export.
+- **Corner radius you set.** The rounding is cut into the PNG, leaving the
+  corners transparent, so the card sits on any background.
 - **Display P3 colour.** Every palette is authored in OKLCH, and the themes we
   designed carry a wider second palette used when the canvas supports it.
 - **Download or copy** at 1×, 2× or 3×. The pixel size is shown before you export.

@@ -430,7 +430,31 @@ export function Studio() {
               </div>
             </Group>
 
-            <Group title="Export" index={7} className="export">
+            <Group title="Corners" index={7}>
+              <div className="slider">
+                <input
+                  type="range"
+                  min={0}
+                  max={160}
+                  step={4}
+                  value={options.cornerRadius}
+                  onChange={(e) =>
+                    setOptions((prev) => ({ ...prev, cornerRadius: Number(e.target.value) }))
+                  }
+                  aria-label="Corner radius"
+                />
+                <output>
+                  {options.cornerRadius
+                    ? `${Math.round(options.cornerRadius * scale)} px`
+                    : "Square"}
+                </output>
+              </div>
+              <p className="note">
+                Rounded corners are cut into the file, so it sits on any background.
+              </p>
+            </Group>
+
+            <Group title="Export" index={8} className="export">
               <div className="chips">
                 {SCALES.map((s) => (
                   <button

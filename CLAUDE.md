@@ -53,6 +53,9 @@ one client component.
 - **The avatar must stay same-origin.** It is proxied through `/api/avatar`
   because a cross-origin image taints the canvas and silently breaks `toBlob`.
   Never draw an image straight from `avatars.githubusercontent.com`.
+- **The preview shows the real corners.** `cardRadius()` is the single source
+  for both the exported clip and the preview frame's CSS radius. Never give the
+  frame a decorative radius the file does not have.
 - **Guides are never exported.** The safe-area overlay is painted on a second
   canvas above the card in the preview. It must not enter `draw()`.
 - **Safe-area insets are rectangular.** A notch is drawn, not subtracted. Do not

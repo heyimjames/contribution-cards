@@ -288,22 +288,21 @@ button, input { font: inherit; color: inherit; }
   .fitter { max-height: clamp(320px, 64vh, 700px); }
 }
 
+/* The radius comes in as an inline style, scaled from the card's own corner
+ * setting, so the preview never shows a corner the file does not have. */
 .frame {
   position: relative;
-  border-radius: 10px;
+  border-radius: 0;
   box-shadow: var(--shadow-card);
   overflow: hidden;
-  transition-property: box-shadow, border-radius;
+  transition-property: box-shadow;
   transition-duration: 180ms;
   transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
 }
 
-/* A transparent export has no card surface, so the preview stops pretending
- * it has one: no elevation, no corner radius it will not actually have. */
-.frame[data-flat="true"] {
-  box-shadow: none;
-  border-radius: 0;
-}
+/* A transparent export has no card surface, so the preview stops pretending it
+ * has one: the elevation goes. */
+.frame[data-flat="true"] { box-shadow: none; }
 
 .frame canvas,
 .frame img { display: block; max-width: 100%; }
@@ -409,6 +408,25 @@ button, input { font: inherit; color: inherit; }
 .swatch span { font-size: 11px; color: var(--muted); padding-left: 2px; }
 
 .swatch[aria-pressed="true"] span { color: var(--text); }
+
+.slider { display: flex; align-items: center; gap: 12px; }
+
+.slider input[type="range"] {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  accent-color: var(--chip-on);
+  cursor: pointer;
+}
+
+.slider output {
+  font-size: 13px;
+  color: var(--muted);
+  /* Tabular figures so the readout does not jitter while dragging. */
+  font-variant-numeric: tabular-nums;
+  min-width: 6ch;
+  text-align: right;
+}
 
 .actions { display: grid; gap: 8px; grid-template-columns: 1fr auto; }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { drawGuides, measure, paint, type RenderInput } from "@/lib/render";
+import { cardRadius, drawGuides, measure, paint, type RenderInput } from "@/lib/render";
 
 /* ─────────────────────────────────────────────────────────
  * PREVIEW SIZING
@@ -19,6 +19,10 @@ import { drawGuides, measure, paint, type RenderInput } from "@/lib/render";
  * ───────────────────────────────────────────────────────── */
 
 type Size = { w: number; h: number };
+
+/** Contain: shrink to whichever of width or height runs out first, never grow. */
+const fitOf = (box: Size, cardW: number, cardH: number) =>
+  box.w > 0 && box.h > 0 ? Math.min(box.w / cardW, box.h / cardH, 1) : 0;
 
 export function Preview({
   input,
@@ -51,10 +55,9 @@ export function Preview({
   }, []);
 
   const cardHeight = measure(input).height;
-  const fit =
-    box.w > 0 && box.h > 0
-      ? Math.min(box.w / input.width, box.h / cardHeight, 1)
-      : 0;
+  /* The preview shows the real corners, at the scale the card is displayed. */
+  const radius = cardRadius(input) * fitOf(box, input.width, cardHeight);
+  const fit = fitOf(box, input.width, cardHeight);
   const displayW = input.width * fit;
   const displayH = cardHeight * fit;
 
@@ -76,9 +79,10 @@ export function Preview({
     const ctx = guide.getContext("2d");
     if (!ctx) return;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    if (input.safe) drawGuides(ctx, input.safe, displayW, displayH, dpr, input.theme.dark);
+    if (input.safe)
+      drawGuides(ctx, input.safe, displayW, displayH, dpr, input.theme.dark, radius);
     else ctx.clearRect(0, 0, displayW, displayH);
-  }, [input, fit, displayW, displayH, onSize]);
+  }, [input, fit, displayW, displayH, radius, onSize]);
 
   return (
     <div className="fitter" ref={boxRef}>
@@ -87,7 +91,11 @@ export function Preview({
         data-flat={input.options.transparent}
         role="img"
         aria-label={`Contribution card for ${input.login}`}
-        style={fit > 0 ? { width: displayW, height: displayH } : undefined}
+        style={
+          fit > 0
+            ? { width: displayW, height: displayH, borderRadius: `${radius}px` }
+            : undefined
+        }
       >
         <canvas ref={cardRef} aria-hidden="true" />
         {imageUrl ? <img className="saveable" src={imageUrl} alt="" /> : null}

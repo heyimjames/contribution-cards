@@ -48,6 +48,8 @@ export type CardOptions = {
   showUrl: boolean;
   transparent: boolean;
   shape: "rounded" | "square" | "circle";
+  /** corner radius of the card itself, in card pixels, baked into the export */
+  cornerRadius: number;
 };
 
 export const DEFAULT_OPTIONS: CardOptions = {
@@ -61,6 +63,7 @@ export const DEFAULT_OPTIONS: CardOptions = {
   showUrl: true,
   transparent: false,
   shape: "rounded",
+  cornerRadius: 0,
 };
 
 export type RenderInput = {
@@ -79,6 +82,15 @@ export type RenderInput = {
 };
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), hi);
+
+/**
+ * The card's corner radius, never more than half its shortest side. Exported and
+ * previewed from the same number, so the corners on screen are the real ones.
+ */
+export function cardRadius(input: RenderInput) {
+  const height = measure(input).height;
+  return clamp(input.options.cornerRadius, 0, Math.min(input.width, height) / 2);
+}
 const nf = new Intl.NumberFormat("en-GB");
 const plural = (n: number) => (n === 1 ? "contribution" : "contributions");
 
@@ -223,6 +235,16 @@ export function draw(ctx: CanvasRenderingContext2D, input: RenderInput) {
   const levels = levelsOf(t, p3);
 
   ctx.clearRect(0, 0, W, height);
+
+  /* Rounding the card means the corners leave the file transparent, so it sits
+   * on any background. Everything after this is clipped, background included. */
+  const radius = clamp(o.cornerRadius, 0, Math.min(W, height) / 2);
+  if (radius > 0) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(0, 0, W, height, radius);
+    ctx.clip();
+  }
 
   if (!o.transparent) {
     const stops = bgOf(t, p3);
@@ -392,6 +414,8 @@ export function draw(ctx: CanvasRenderingContext2D, input: RenderInput) {
     ctx.textBaseline = "top";
   }
 
+  if (radius > 0) ctx.restore();
+
   return { width: W, height };
 }
 
@@ -406,6 +430,7 @@ export function drawGuides(
   height: number,
   scale: number,
   onDark: boolean,
+  radius: number,
 ) {
   const top = zone.top * height;
   const bottom = zone.bottom * height;
@@ -413,6 +438,12 @@ export function drawGuides(
   const right = zone.right * width;
 
   ctx.clearRect(0, 0, width, height);
+  if (radius > 0) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(0, 0, width, height, radius);
+    ctx.clip();
+  }
   /* A neutral scrim dims what the platform will cover, without staining the
    * artwork a colour it does not have. The boundary carries the warning. */
   ctx.fillStyle = onDark ? "oklch(1 0 0 / 0.14)" : "oklch(0 0 0 / 0.14)";
@@ -439,6 +470,7 @@ export function drawGuides(
   ctx.lineWidth = Math.max(1, 1.5 / scale);
   ctx.strokeRect(left, top, width - left - right, height - top - bottom);
   ctx.setLineDash([]);
+  if (radius > 0) ctx.restore();
 }
 
 /** Paints into a canvas at `scale` device pixels per CSS pixel. */
