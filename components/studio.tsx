@@ -6,6 +6,7 @@ import { canDownload, copyPng, encodePng, saveUrl } from "@/lib/export";
 import { useCardImage } from "@/lib/use-card-image";
 import { DEFAULT_OPTIONS, measure, type CardOptions, type RenderInput } from "@/lib/render";
 import { zoneById, zonesFor } from "@/lib/safe-zones";
+import { SAMPLE_LOGIN, sampleYear } from "@/lib/sample";
 import { FORMATS, THEMES, formatById, themeById } from "@/lib/themes";
 import type { Profile, YearData } from "@/lib/types";
 
@@ -66,6 +67,7 @@ export function Studio() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   const [themeId, setThemeId] = useState("snow");
   const [formatId, setFormatId] = useState("tight");
@@ -170,6 +172,7 @@ export function Studio() {
 
   const format = formatById(formatId);
   const zones = useMemo(() => zonesFor(format.aspect), [format.aspect]);
+  const sample = useMemo(() => [sampleYear()], []);
   const name = profile?.name ?? null;
 
   /* A zone belongs to one aspect ratio, so changing format drops a stale one. */
@@ -217,9 +220,36 @@ export function Studio() {
     return () => clearTimeout(id);
   }, [copied]);
 
+  /* A download lands silently in a folder you cannot see from here, so the
+   * button is the only place the completion can be acknowledged. */
+  useEffect(() => {
+    if (!saved) return;
+    const id = setTimeout(() => setSaved(false), 1800);
+    return () => clearTimeout(id);
+  }, [saved]);
+
   /* Measured, not reported back from the canvas, so the stage takes the right
    * shape on the first frame instead of flashing the previous format's. */
-  const aspect = input ? `${input.width} / ${measure(input).height}` : undefined;
+  /* The example keeps the stage in the shape of a card before anything loads,
+   * so the first real card changes the contents rather than replacing a
+   * paragraph with an object that was never there. */
+  const shownInput: RenderInput = useMemo(
+    () =>
+      input ?? {
+        years: sample,
+        login: SAMPLE_LOGIN,
+        name: null,
+        avatar: null,
+        theme: themeById(themeId),
+        options: { ...options, showAvatar: false },
+        width: format.width,
+        height: format.height,
+        safe,
+      },
+    [input, sample, themeId, options, format.width, format.height, safe],
+  );
+
+  const aspect = `${shownInput.width} / ${measure(shownInput).height}`;
 
   /* The same PNG the download writes, so a press and hold saves the real file. */
   const imageUrl = useCardImage(input, scale);
@@ -232,11 +262,13 @@ export function Studio() {
       /* Reuse the encoded card when it is ready; only encode again if it is not. */
       if (imageUrl) {
         saveUrl(imageUrl, filename);
+        setSaved(true);
         return;
       }
       const blob = await encodePng(input, scale);
       const url = URL.createObjectURL(blob);
       saveUrl(url, filename);
+      setSaved(true);
       /* Long enough for the transfer to start; revoking at once aborts it. */
       setTimeout(() => URL.revokeObjectURL(url), 60_000);
     } catch {
@@ -279,7 +311,7 @@ export function Studio() {
           />
         </div>
         <button className="btn btn-primary" type="submit" disabled={busy || !query.trim()}>
-          {busy ? <Spinner /> : <BoltIcon />}
+          <IconSwap on={busy} off={<BoltIcon />} upper={<Spinner />} />
           {busy ? "Reading" : "Make card"}
         </button>
       </form>
@@ -291,29 +323,30 @@ export function Studio() {
       ) : null}
 
       <div className="grid">
-        <section
-          className="stage"
+        <div className="stage-col">
+          <section
+            className="stage"
           data-checker={options.transparent}
-          data-empty={!input}
+          data-sample={!input}
           data-busy={busy && Boolean(input)}
           aria-busy={busy}
-          key={login ?? "empty"}
-          style={aspect ? { ["--card-aspect" as string]: aspect } : undefined}
+          style={{ ["--card-aspect" as string]: aspect }}
         >
-          {input ? (
-            <div className="enter" style={{ ["--i" as string]: TIMING.card }}>
-              <Preview input={input} imageUrl={imageUrl} onSize={handleSize} />
-            </div>
-          ) : (
-            <div className="empty">
-              <strong>Nothing loaded yet</strong>
-              <span>
-                Type a GitHub username above. Every year that account has been active becomes a
-                card you can style and save.
-              </span>
-            </div>
+          <div className="enter" style={{ ["--i" as string]: TIMING.card }}>
+            <Preview
+              input={shownInput}
+              imageUrl={input ? imageUrl : null}
+              onSize={handleSize}
+            />
+          </div>
+          </section>
+
+          {input ? null : (
+            <p className="example-note">
+              An example. Type a GitHub username above to make yours.
+            </p>
           )}
-        </section>
+        </div>
 
         {input ? (
           <div className="panel">
@@ -496,11 +529,11 @@ export function Studio() {
                   onClick={onDownload}
                   disabled={!canDownload()}
                 >
-                  <DownloadIcon />
-                  Download PNG
+                  <IconSwap on={saved} off={<DownloadIcon />} upper={<CheckIcon />} />
+                  {saved ? "Saved" : "Download PNG"}
                 </button>
                 <button className="btn" type="button" onClick={onCopy}>
-                  {copied ? <CheckIcon /> : <CopyIcon />}
+                  <IconSwap on={copied} off={<CopyIcon />} upper={<CheckIcon />} />
                   {copied ? "Copied" : "Copy"}
                 </button>
               </div>
@@ -541,6 +574,28 @@ function Group({
       <h2>{title}</h2>
       {children}
     </section>
+  );
+}
+
+/**
+ * Icons transform rather than swap. Both stay in the layout and cross-fade with
+ * scale and blur, so the change reads as one mark becoming another instead of a
+ * hard cut. Reduced motion collapses it to an instant change.
+ */
+function IconSwap({
+  on,
+  off,
+  upper,
+}: {
+  on: boolean;
+  off: React.ReactNode;
+  upper: React.ReactNode;
+}) {
+  return (
+    <span className="icon-swap" aria-hidden="true">
+      <span data-on={!on}>{off}</span>
+      <span data-on={on}>{upper}</span>
+    </span>
   );
 }
 

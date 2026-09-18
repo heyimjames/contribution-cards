@@ -225,6 +225,43 @@ button, input { font: inherit; color: inherit; }
 
 .btn svg { width: 16px; height: 16px; stroke-width: 1.75; }
 
+/* ─── icon morph ─────────────────────────────────────────────
+ * Both marks stay in the layout and cross-fade with scale and
+ * blur, so one becomes the other instead of being cut to it.
+ * ───────────────────────────────────────────────────────── */
+.icon-swap {
+  position: relative;
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
+
+.icon-swap > span {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  transition-property: opacity, scale, filter;
+  transition-duration: 300ms;
+  transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+
+.icon-swap > span[data-on="false"] {
+  opacity: 0;
+  scale: 0.25;
+  filter: blur(4px);
+}
+
+.icon-swap > span[data-on="true"] {
+  opacity: 1;
+  scale: 1;
+  filter: blur(0px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .icon-swap > span { transition-duration: 1ms; }
+}
+
 /* ─── layout ────────────────────────────────────────────── */
 .grid { display: grid; gap: 20px; align-items: start; }
 
@@ -252,10 +289,18 @@ button, input { font: inherit; color: inherit; }
   .stage { padding: 22px; border-radius: 20px; }
 }
 
-.stage[data-empty="true"] {
-  min-height: 220px;
-  display: grid;
-  place-items: center;
+/* The example is plainly an example: present enough to show the shape of the
+ * thing, quiet enough that it is not mistaken for someone's real year. */
+.stage[data-sample="true"] .fitter { opacity: 0.5; }
+
+.stage[data-sample="true"] .frame { box-shadow: none; }
+
+.stage-col { min-width: 0; }
+
+.example-note {
+  margin: 10px 2px 0;
+  font-size: 13px;
+  color: var(--muted);
 }
 
 .stage[data-checker="true"]::before {
@@ -331,18 +376,6 @@ button, input { font: inherit; color: inherit; }
   inset: 0;
   pointer-events: none;
 }
-
-.empty {
-  display: grid;
-  gap: 6px;
-  place-items: center;
-  text-align: center;
-  color: var(--muted);
-  padding: 40px 16px;
-  max-width: 34ch;
-}
-
-.empty strong { color: var(--text); font-weight: 600; }
 
 .error { color: var(--danger); font-size: 14px; margin: 0 2px 14px; }
 

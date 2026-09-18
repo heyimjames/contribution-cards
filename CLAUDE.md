@@ -56,6 +56,10 @@ one client component.
 - **The preview shows the real corners.** `cardRadius()` is the single source
   for both the exported clip and the preview frame's CSS radius. Never give the
   frame a decorative radius the file does not have.
+- **The empty state is a real card.** `lib/sample.ts` feeds the same renderer, so
+  the first real card changes an object that is already on screen instead of
+  replacing a paragraph. Do not put the card behind a conditional that unmounts
+  it; a torn-down and re-entered card reads as the page reloading.
 - **Guides are never exported.** The safe-area overlay is painted on a second
   canvas above the card in the preview. It must not enter `draw()`.
 - **Safe-area insets are rectangular.** A notch is drawn, not subtracted. Do not
