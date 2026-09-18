@@ -80,7 +80,14 @@ export function Studio() {
     const res = await fetch(`/api/contributions?user=${encodeURIComponent(user)}&year=${year}`);
     const json = await res.json();
     if (!res.ok) throw new Error(json.error ?? "Could not reach GitHub.");
-    setProfile(json.profile as Profile);
+    const next = json.profile as Profile;
+    /* Every year request returns the same profile. Keeping the old object when
+     * nothing changed stops a fresh identity rippling out into a repaint. */
+    setProfile((prev) =>
+      prev && prev.login === next.login && prev.years.join() === next.years.join()
+        ? prev
+        : next,
+    );
     const data = json.year as YearData;
     setCache((prev) => ({ ...prev, [`${json.profile.login}:${year}`]: data }));
     return data;
@@ -149,6 +156,18 @@ export function Studio() {
     return selected === "all" ? loaded.filter((year, i) => i < 3 || year.total > 0) : loaded;
   }, [login, selected, stackedKeys, cache]);
 
+  /* A year that is not cached yet leaves `years` empty for as long as the fetch
+   * takes. Rendering that gap would unmount the card and the whole panel, and
+   * bring them back with every entrance animation replaying, which reads as the
+   * page reloading. So the last good card stays up until the new one arrives. */
+  const [held, setHeld] = useState<{ login: string; years: YearData[] } | null>(null);
+
+  useEffect(() => {
+    if (login && years.length) setHeld({ login, years });
+  }, [login, years]);
+
+  const shownYears = held && held.login === login && !years.length ? held.years : years;
+
   const format = formatById(formatId);
   const zones = useMemo(() => zonesFor(format.aspect), [format.aspect]);
   const name = profile?.name ?? null;
@@ -167,9 +186,9 @@ export function Studio() {
    * render would repaint (and re-measure) in a loop. */
   const input: RenderInput | null = useMemo(
     () =>
-      login && years.length
+      login && shownYears.length
         ? {
-            years,
+            years: shownYears,
             login,
             name,
             avatar,
@@ -180,7 +199,7 @@ export function Studio() {
             safe,
           }
         : null,
-    [login, years, name, avatar, themeId, options, format.width, format.height, safe],
+    [login, shownYears, name, avatar, themeId, options, format.width, format.height, safe],
   );
 
   /* Bail out when the measurement is unchanged, so the repaint cycle ends. */
@@ -276,6 +295,8 @@ export function Studio() {
           className="stage"
           data-checker={options.transparent}
           data-empty={!input}
+          data-busy={busy && Boolean(input)}
+          aria-busy={busy}
           key={login ?? "empty"}
           style={aspect ? { ["--card-aspect" as string]: aspect } : undefined}
         >

@@ -276,7 +276,14 @@ button, input { font: inherit; color: inherit; }
 /* The fitter carries the card's own proportions, so a wide banner does not sit
  * marooned in a tall box and a tall story does not fill the screen. Putting the
  * ratio here rather than on the stage keeps the stage's padding out of it. */
+/* While a new year loads the card stays put and simply recedes, rather than
+ * being torn down and animated back in. */
+.stage[data-busy="true"] .fitter { opacity: 0.45; }
+
 .fitter {
+  transition-property: opacity;
+  transition-duration: 160ms;
+  transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
   width: 100%;
   aspect-ratio: var(--card-aspect, 16 / 9);
   max-height: clamp(220px, 46vh, 380px);
